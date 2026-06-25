@@ -294,9 +294,9 @@ while True:
     # game update
     game.update_target()
 
-    cv2.putText(frame, f"TOUCH YOUR {game.current_target}",
+    cv2.putText(frame, f"REACHY SAYS TOUCH YOUR {game.current_target}",
                 (w // 2 - 200, 60),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
     
     cv2.putText(frame,
             f"P1: {game.scores['Player 1']}  |  P2: {game.scores['Player 2']}",
