@@ -51,7 +51,12 @@ class TouchGame:
             self.scores[player_name] += 1
             self.round_winner = player_name
             winsound.Beep(1000, 200)
-
             return True
 
         return False
+
+    def add_penalty(self, player_name):
+            if self.scores[player_name] > 0:
+                self.scores[player_name] -= 1
+            winsound.Beep(500, 200) #error sound for penalty
+            

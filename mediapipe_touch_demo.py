@@ -28,6 +28,7 @@ CAM_INDEX    = 0
 MIRROR_VIEW  = True
 STABLE_FRAMES = 4
 INDEX_TIP_ID  = 8
+WRONG_FRAMES= 10
 
 # Face landmark indices
 NOSE_TIP          = 1
@@ -211,10 +212,18 @@ stable_touch = {
     "P1": {"Left": None, "Right": None},
     "P2": {"Left": None, "Right": None},
 }
+wrong_counter = {
+    "P1": {"Left": 0, "Right": 0},
+    "P2": {"Left": 0, "Right": 0},
+}
+penalized = {
+    "P1": {"Left": False, "Right": False},
+    "P2": {"Left": False, "Right": False},
+}
 
 game = TouchGame(duration=5)
 
-window_name = "Children's Touch Game"
+window_name = "oLDer Children's Touch Game"
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 cv2.setWindowProperty(window_name, cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_AUTOSIZE)
 
@@ -257,14 +266,30 @@ while True:
 
     #  debounce touch inpput 
     for hand in ("Left", "Right"):
-        for player, tn in [("P1", tn1), ("P2", tn2)]:
-            if tn[hand]:
+        for player, tn, player_name in [("P1", tn1, "Player 1"), ("P2", tn2, "Player 2")]:
+            part = tn[hand]
+            
+            if part:
                 stable_counter[player][hand] += 1
                 if stable_counter[player][hand] >= STABLE_FRAMES:
-                    stable_touch[player][hand] = tn[hand]
+                    stable_touch[player][hand] = part
+ 
+                    #eval when touch is stable 
+                    if part != game.current_target:
+                        wrong_counter[player][hand] += 1
+                        if wrong_counter[player][hand] >= WRONG_FRAMES and not penalized[player][hand]:
+                            game.add_penalty(player_name)
+                            penalized[player][hand] = True
+                    else:
+                        # Correct spot then reset
+                        wrong_counter[player][hand] = 0
+                        penalized[player][hand]     = False
             else:
+                # Hand lift is allows fresh touch
                 stable_counter[player][hand] = 0
-                stable_touch[player][hand] = None
+                stable_touch[player][hand]   = None
+                wrong_counter[player][hand]  = 0
+                penalized[player][hand]      = False
 
     # game update
     game.update_target()
@@ -272,11 +297,12 @@ while True:
     cv2.putText(frame, f"TOUCH YOUR {game.current_target}",
                 (w // 2 - 200, 60),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-
+    
     cv2.putText(frame,
-                f"P1: {game.scores['Player 1']}  |  P2: {game.scores['Player 2']}",
-                (10, 90),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+            f"P1: {game.scores['Player 1']}  |  P2: {game.scores['Player 2']}",
+            (10, h - 50),          # bottom of screen, out of the way
+            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 0), 2)
+
 
     # scores
     player_cfg = [
@@ -289,6 +315,8 @@ while True:
         if touches:
             part   = touches[0]
             scored = game.check_winner(player_name, [part])
+            is_wrong = part != game.current_target
+
 
             cv2.putText(frame, f"{player_name}: TOUCHING {part}",
                         (20, y_pos),
@@ -298,6 +326,7 @@ while True:
                 cv2.putText(frame, f"{player_name} - NICE!",
                             (20, y_pos + 35),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+                
 
     cv2.putText(frame, "Q = quit", (20, h - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
